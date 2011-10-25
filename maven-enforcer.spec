@@ -1,16 +1,15 @@
-%global project_version 1.0-beta-2
 
 Name:           maven-enforcer
 Version:        1.0
-Release:        0.3.b2
+Release:        1
 Summary:        Maven Enforcer
 
 Group:          Development/Java
 License:        ASL 2.0
 URL:            http://maven.apache.org/enforcer
-#svn export http://svn.apache.org/repos/asf/maven/enforcer/tags/enforcer-1.0-beta-2 enforcer-1.0-beta-2
-#tar caf enforcer-1.0-beta-2.tar.xz enforcer-1.0-beta-2
-Source0:        enforcer-%{project_version}.tar.xz
+#svn export http://svn.apache.org/repos/asf/maven/enforcer/tags/enforcer-1.0 enforcer-1.0
+#tar caf enforcer-1.0.tar.xz enforcer-1.0
+Source0:        enforcer-%{version}.tar.xz
 Source1:        %{name}-depmap.xml
 Patch0:         fix-site.patch
 
@@ -18,7 +17,7 @@ BuildArch: noarch
 
 BuildRequires: java-devel >= 0:1.6.0
 
-BuildRequires: maven2
+BuildRequires: maven
 BuildRequires: maven-plugin-plugin
 BuildRequires: maven-assembly-plugin
 BuildRequires: maven-compiler-plugin
@@ -38,7 +37,7 @@ BuildRequires: maven-surefire-provider-junit
 BuildRequires: tomcat6
 BuildRequires: plexus-maven-plugin
 BuildRequires: plexus-containers-component-javadoc
-Requires:      maven2
+Requires:      maven
 Requires:       jpackage-utils
 Requires:       java
 Requires(post):       jpackage-utils
@@ -86,29 +85,27 @@ This component contains the standard Enforcer Rules.
 
 
 %prep
-%setup -q -n enforcer-%{project_version}
+%setup -q -n enforcer-%{version}
 %patch0
 
 # fix old dep on javadoc taglet
 sed -i 's:<artifactId>plexus-javadoc</artifactId>:<artifactId>plexus-component-javadoc</artifactId>:' pom.xml
 
 %build
-export MAVEN_REPO_LOCAL=$(pwd)/.m2/repository
-mvn-jpp \
+mvn-rpmbuild \
         -e \
-        -Dmaven.repo.local=$MAVEN_REPO_LOCAL \
-        -Dmaven2.jpp.depmap.file=%{SOURCE1} \
+        -Dmaven.local.depmap.file=%{SOURCE1} \
         -Dmaven.test.failure.ignore=true \
         install javadoc:aggregate
 
 %install
 # jars
 install -d -m 0755 %{buildroot}%{_javadir}/%{name}
-install -m 644 enforcer-api/target/enforcer-api-%{project_version}.jar  \
+install -m 644 enforcer-api/target/enforcer-api-%{version}.jar  \
  %{buildroot}%{_javadir}/%{name}/enforcer-api.jar
-install -m 644 enforcer-rules/target/enforcer-rules-%{project_version}.jar \
+install -m 644 enforcer-rules/target/enforcer-rules-%{version}.jar \
   %{buildroot}%{_javadir}/%{name}/enforcer-rules.jar
-install -m 644 maven-enforcer-plugin/target/maven-enforcer-plugin-%{project_version}.jar  \
+install -m 644 maven-enforcer-plugin/target/maven-enforcer-plugin-%{version}.jar  \
  %{buildroot}%{_javadir}/%{name}/plugin.jar
 
 # poms
@@ -116,19 +113,19 @@ install -d -m 755 $RPM_BUILD_ROOT%{_mavenpomdir}
 
 install -pm 644 pom.xml \
                 $RPM_BUILD_ROOT%{_mavenpomdir}/JPP-%{name}.pom
-%add_to_maven_depmap org.apache.maven.enforcer enforcer %{project_version} JPP %{name}
+%add_to_maven_depmap org.apache.maven.enforcer enforcer %{version} JPP %{name}
 
 install -pm 644 enforcer-api/pom.xml \
                 $RPM_BUILD_ROOT%{_mavenpomdir}/JPP.%{name}-enforcer-api.pom
-%add_to_maven_depmap org.apache.maven.enforcer enforcer-api %{project_version} JPP/%{name} enforcer-api
+%add_to_maven_depmap org.apache.maven.enforcer enforcer-api %{version} JPP/%{name} enforcer-api
 
 install -pm 644 enforcer-rules/pom.xml \
                 $RPM_BUILD_ROOT%{_mavenpomdir}/JPP.%{name}-enforcer-rules.pom
-%add_to_maven_depmap org.apache.maven.enforcer enforcer-rules %{project_version} JPP/%{name} enforcer-rules
+%add_to_maven_depmap org.apache.maven.enforcer enforcer-rules %{version} JPP/%{name} enforcer-rules
 
 install -pm 644 maven-enforcer-plugin/pom.xml \
                 $RPM_BUILD_ROOT%{_mavenpomdir}/JPP.%{name}-plugin.pom
-%add_to_maven_depmap org.apache.maven.plugins maven-enforcer-plugin %{project_version} JPP/%{name} plugin
+%add_to_maven_depmap org.apache.maven.plugins maven-enforcer-plugin %{version} JPP/%{name} plugin
 
 # javadoc
 install -d -m 755 %{buildroot}%{_javadocdir}/%{name}
