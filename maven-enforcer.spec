@@ -1,7 +1,7 @@
 
 Name:           maven-enforcer
 Version:        1.0
-Release:        1
+Release:        3
 Summary:        Maven Enforcer
 
 Group:          Development/Java
