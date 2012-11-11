@@ -1,0 +1,10 @@
+--- src/site/site.xml.sav	2009-01-16 15:55:37.000000000 +0200
++++ src/site/site.xml	2010-05-19 14:38:47.945028586 +0300
+@@ -30,6 +30,6 @@ under the License.
+       <item name="Maven" href="http://maven.apache.org/index.html" />
+       <item name="Enforcer" href="http://maven.apache.org/enforcer/index.html" />
+     </breadcrumbs>
+-    <menu ref="modules" />
++  
+   </body>
+ </project>
