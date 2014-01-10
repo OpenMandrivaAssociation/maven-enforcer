@@ -1,168 +1,156 @@
-
+%{?_javapackages_macros:%_javapackages_macros}
 Name:           maven-enforcer
-Version:        1.0
-Release:        3
+Version:        1.3.1
+Release:        1.1%{?dist}
 Summary:        Maven Enforcer
-
-Group:          Development/Java
 License:        ASL 2.0
 URL:            http://maven.apache.org/enforcer
-#svn export http://svn.apache.org/repos/asf/maven/enforcer/tags/enforcer-1.0 enforcer-1.0
-#tar caf enforcer-1.0.tar.xz enforcer-1.0
-Source0:        enforcer-%{version}.tar.xz
-Source1:        %{name}-depmap.xml
-Patch0:         fix-site.patch
+Source0:        http://repo1.maven.org/maven2/org/apache/maven/enforcer/enforcer/%{version}/enforcer-%{version}-source-release.zip
+BuildArch:      noarch
 
-BuildArch: noarch
-
-BuildRequires: java-devel >= 0:1.6.0
-
-BuildRequires: maven
-BuildRequires: maven-plugin-plugin
-BuildRequires: maven-assembly-plugin
-BuildRequires: maven-compiler-plugin
-BuildRequires: maven-doxia
-BuildRequires: maven-doxia-sitetools
-BuildRequires: maven-doxia-tools
-BuildRequires: maven-install-plugin
-BuildRequires: maven-javadoc-plugin
-BuildRequires: maven-jar-plugin
-BuildRequires: maven-plugin-testing-harness
-BuildRequires: maven-plugin-cobertura
-BuildRequires: maven-resources-plugin
-BuildRequires: maven-site-plugin
-BuildRequires: maven-shared-reporting-impl
-BuildRequires: maven-surefire-plugin
-BuildRequires: maven-surefire-provider-junit
-BuildRequires: tomcat6
-BuildRequires: plexus-maven-plugin
-BuildRequires: plexus-containers-component-javadoc
-Requires:      maven
-Requires:       jpackage-utils
-Requires:       java
-Requires(post):       jpackage-utils
-Requires(postun):     jpackage-utils
+BuildRequires:  maven-local
+BuildRequires:  mvn(commons-lang:commons-lang)
+BuildRequires:  mvn(org.apache.maven.plugin-tools:maven-plugin-annotations)
+BuildRequires:  mvn(org.apache.maven.shared:maven-common-artifact-filters)
+BuildRequires:  mvn(org.apache.maven.shared:maven-dependency-tree)
+BuildRequires:  mvn(org.apache.maven:maven-artifact)
+BuildRequires:  mvn(org.apache.maven:maven-compat)
+BuildRequires:  mvn(org.apache.maven:maven-core)
+BuildRequires:  mvn(org.apache.maven:maven-parent)
+BuildRequires:  mvn(org.apache.maven:maven-plugin-api)
+BuildRequires:  mvn(org.apache.maven:maven-project)
+BuildRequires:  mvn(org.beanshell:bsh)
+BuildRequires:  mvn(org.codehaus.plexus:plexus-container-default)
+BuildRequires:  mvn(org.codehaus.plexus:plexus-i18n)
+BuildRequires:  mvn(org.codehaus.plexus:plexus-utils)
 
 %description
 Enforcer is a build rule execution framework.
 
 %package javadoc
-Group:          Development/Java
 Summary:        Javadoc for %{name}
-Requires:       jpackage-utils
 
 %description javadoc
 API documentation for %{name}.
 
 %package api
-Summary: Enforcer API
-Group: Development/Java
-Requires: %{name} = %{version}-%{release}
+Summary:        Enforcer API
 
 %description api
 This component provides the generic interfaces needed to
 implement custom rules for the maven-enforcer-plugin.
 
 %package rules
-Summary: Enforcer Rules
-Group: Development/Java
-Requires: %{name} = %{version}-%{release}
-Requires: %{name}-api
+Summary:        Enforcer Rules
 
 %description rules
 This component contains the standard Enforcer Rules.
 
-%package -n maven-enforcer-plugin
-Summary: Enforcer Rules
-Group: Development/Java
-Requires: %{name} = %{version}-%{release}
-Requires: %{name}-rules
-Obsoletes: maven2-plugin-enforcer <= 0:2.0.8
-Provides: maven2-plugin-enforcer = 1:%{version}-%{release}
+%package plugin
+Summary:        Enforcer Rules
+Obsoletes:      maven2-plugin-enforcer <= 0:2.0.8
+Provides:       maven2-plugin-enforcer = 1:%{version}-%{release}
 
-%description -n maven-enforcer-plugin
+%description plugin
 This component contains the standard Enforcer Rules.
 
 
 %prep
 %setup -q -n enforcer-%{version}
-%patch0
+%pom_add_dep org.apache.maven:maven-compat enforcer-rules
 
-# fix old dep on javadoc taglet
-sed -i 's:<artifactId>plexus-javadoc</artifactId>:<artifactId>plexus-component-javadoc</artifactId>:' pom.xml
+# Replace plexus-maven-plugin with plexus-component-metadata
+sed -e "s|<artifactId>plexus-maven-plugin</artifactId>|<artifactId>plexus-component-metadata</artifactId>|" \
+    -e "s|<goal>descriptor</goal>|<goal>generate-metadata</goal>|" \
+    -i enforcer-{api,rules}/pom.xml
 
 %build
-mvn-rpmbuild \
-        -e \
-        -Dmaven.local.depmap.file=%{SOURCE1} \
-        -Dmaven.test.failure.ignore=true \
-        install javadoc:aggregate
+%mvn_build -s -f
 
 %install
-# jars
-install -d -m 0755 %{buildroot}%{_javadir}/%{name}
-install -m 644 enforcer-api/target/enforcer-api-%{version}.jar  \
- %{buildroot}%{_javadir}/%{name}/enforcer-api.jar
-install -m 644 enforcer-rules/target/enforcer-rules-%{version}.jar \
-  %{buildroot}%{_javadir}/%{name}/enforcer-rules.jar
-install -m 644 maven-enforcer-plugin/target/maven-enforcer-plugin-%{version}.jar  \
- %{buildroot}%{_javadir}/%{name}/plugin.jar
+%mvn_install
 
-# poms
-install -d -m 755 $RPM_BUILD_ROOT%{_mavenpomdir}
+%files -f .mfiles-enforcer
+%doc LICENSE NOTICE
 
-install -pm 644 pom.xml \
-                $RPM_BUILD_ROOT%{_mavenpomdir}/JPP-%{name}.pom
-%add_to_maven_depmap org.apache.maven.enforcer enforcer %{version} JPP %{name}
-
-install -pm 644 enforcer-api/pom.xml \
-                $RPM_BUILD_ROOT%{_mavenpomdir}/JPP.%{name}-enforcer-api.pom
-%add_to_maven_depmap org.apache.maven.enforcer enforcer-api %{version} JPP/%{name} enforcer-api
-
-install -pm 644 enforcer-rules/pom.xml \
-                $RPM_BUILD_ROOT%{_mavenpomdir}/JPP.%{name}-enforcer-rules.pom
-%add_to_maven_depmap org.apache.maven.enforcer enforcer-rules %{version} JPP/%{name} enforcer-rules
-
-install -pm 644 maven-enforcer-plugin/pom.xml \
-                $RPM_BUILD_ROOT%{_mavenpomdir}/JPP.%{name}-plugin.pom
-%add_to_maven_depmap org.apache.maven.plugins maven-enforcer-plugin %{version} JPP/%{name} plugin
-
-# javadoc
-install -d -m 755 %{buildroot}%{_javadocdir}/%{name}
-cp -pr target/site/apidocs/* %{buildroot}%{_javadocdir}/%{name}
-
-
-%post
-%update_maven_depmap
-
-%postun
-%update_maven_depmap
-
-%pre javadoc
-# workaround for rpm bug, can be removed in F-17
-[ $1 -gt 1 ] && [ -L %{_javadocdir}/%{name} ] && \
-rm -rf $(readlink -f %{_javadocdir}/%{name}) %{_javadocdir}/%{name} || :
-
-
-%files
-%defattr(-,root,root,-)
+%files api -f .mfiles-enforcer-api
+%doc LICENSE NOTICE
 %dir %{_javadir}/%{name}
-%{_mavenpomdir}/*
-%{_mavendepmapfragdir}/*
 
-%files javadoc
-%defattr(-,root,root,-)
-%{_javadocdir}/%{name}
+%files rules -f .mfiles-enforcer-rules
 
-%files api
-%defattr(-,root,root,-)
-%{_javadir}/%{name}/enforcer-api*
+%files plugin -f .mfiles-maven-enforcer-plugin
 
-%files rules
-%defattr(-,root,root,-)
-%{_javadir}/%{name}/enforcer-rules*
+%files javadoc -f .mfiles-javadoc
+%doc LICENSE NOTICE
 
-%files -n maven-enforcer-plugin
-%defattr(-,root,root,-)
-%{_javadir}/%{name}/plugin*
+%changelog
+* Fri Aug  9 2013 Mikolaj Izdebski <mizdebsk@redhat.com> - 1.3.1-1
+- Update to upstream version 1.3.1
 
+* Sat Aug 03 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.2-7
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_20_Mass_Rebuild
+
+* Fri Apr 19 2013 Mikolaj Izdebski <mizdebsk@redhat.com> - 1.2-6
+- Build with xmvn
+- Update to current packaging guidelines
+
+* Fri Apr 19 2013 Mikolaj Izdebski <mizdebsk@redhat.com> - 1.2-5
+- Remove BR on maven-doxia
+- Resolves: rhbz#915611
+
+* Thu Feb 14 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.2-4
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_19_Mass_Rebuild
+
+* Wed Feb 06 2013 Java SIG <java-devel@lists.fedoraproject.org> - 1.2-3
+- Update for https://fedoraproject.org/wiki/Fedora_19_Maven_Rebuild
+- Replace maven BuildRequires with maven-local
+
+* Thu Dec  6 2012 Mikolaj Izdebski <mizdebsk@redhat.com> - 1.2-2
+- Add mising R: forge-parent
+
+* Mon Dec  3 2012 Mikolaj Izdebski <mizdebsk@redhat.com> - 1.2-1
+- Update to upstream version 1.2
+
+* Fri Nov 22 2012 Jaromir Capik <jcapik@redhat.com> - 1.1.1-3
+- Including LICENSE and NOTICE
+
+* Mon Oct 15 2012 Mikolaj Izdebski <mizdebsk@redhat.com> - 1.1.1-2
+- Remove RPM bug workaround
+
+* Fri Oct 12 2012 Mikolaj Izdebski <mizdebsk@redhat.com> - 1.1.1-1
+- Update to upstream version 1.1.1
+- Convert patches to POM macro
+- Remove patch for bug 748074, upstreamed
+
+* Thu Jul 19 2012 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.0.1-5
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_18_Mass_Rebuild
+
+* Thu Feb 02 2012 Jaromir Capik <jcapik@redhat.com> - 1.0.1-4
+- Migration to plexus-containers-component-metadata
+- Maven3 compatibility patches
+- Minor spec file changes according to the latest guidelines
+
+* Fri Jan 13 2012 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.0.1-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_17_Mass_Rebuild
+
+* Fri Jul 15 2011 Jaromir Capik <jcapik@redhat.com> - 1.0.1-2
+- Removal of plexus-maven-plugin dependency (not needed)
+
+* Tue Jun 28 2011 Alexander Kurtakov <akurtako@redhat.com> 1.0.1-1
+- Update to latest upstream 1.0.1.
+- Adapt to current guidelines.
+
+* Thu Mar 10 2011 Stanislav Ochotnicky <sochotnicky@redhat.com> - 1.0-1
+- Update to latest upstream (1.0)
+
+* Tue Feb 08 2011 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1.0-0.3.b2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_15_Mass_Rebuild
+
+* Mon Dec 13 2010 Stanislav Ochotnicky <sochotnicky@redhat.com> - 1.0-0.2.b2
+- Fix FTBFS (#631388)
+- Use new maven plugin names
+- Versionless jars & javadocs
+
+* Wed May 19 2010 Alexander Kurtakov <akurtako@redhat.com> 1.0-0.1.b2
+- Initial package
