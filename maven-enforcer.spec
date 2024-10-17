@@ -4,7 +4,7 @@ Version:        1.3.1
 Release:        1.1%{?dist}
 Summary:        Maven Enforcer
 License:        ASL 2.0
-URL:            http://maven.apache.org/enforcer
+URL:            https://maven.apache.org/enforcer
 Source0:        http://repo1.maven.org/maven2/org/apache/maven/enforcer/enforcer/%{version}/enforcer-%{version}-source-release.zip
 BuildArch:      noarch
 
